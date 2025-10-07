@@ -122,11 +122,13 @@ http://localhost:3000/oauth/callback?code=tc_xxxxxxxxxx
 Copy the `code` parameter value (starts with `tc_`)
 
 4. **Exchange Code for Token**:
+
+**IMPORTANT**: OwnerRez has a quirk - do NOT include `redirect_uri` in the token exchange request, even though the OAuth 2.0 spec and their documentation suggests it. Including it will cause 403 errors.
+
 ```bash
 curl -u YOUR_CLIENT_ID:YOUR_CLIENT_SECRET \
   -d code=YOUR_AUTHORIZATION_CODE \
   -d grant_type=authorization_code \
-  -d redirect_uri=YOUR_REDIRECT_URI \
   -X POST https://api.ownerrez.com/oauth/access_token
 ```
 
@@ -233,9 +235,16 @@ Example webhook categories:
 - User declined authorization
 - Try the OAuth flow again
 
+### "403 Forbidden" on Token Exchange
+- **Most Common**: Including `redirect_uri` parameter in the POST body (see Step 5 for correct format)
+- Missing or invalid User-Agent header
+- IP address blocked (try from your local machine instead of cloud VM)
+- Contact OwnerRez support if issue persists
+
 ### "403 Forbidden" on API Calls
 - Missing User-Agent header (handled by the MCP server)
 - IP address blocked
+- Invalid or revoked access token
 - Contact OwnerRez support
 
 ### Token Not Working
