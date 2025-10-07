@@ -21,8 +21,8 @@
     "vacation-rental",
     "property-management"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "Dustin Rasener",
+  "license": "Apache-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "axios": "^1.7.9",
