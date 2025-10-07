@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ownerrez": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/ownerrez-mcp-server/build/index.js"
+      ],
+      "env": {
+        "OWNERREZ_CLIENT_ID": "c_your_client_id_here",
+        "OWNERREZ_CLIENT_SECRET": "s_your_client_secret_here",
+        "OWNERREZ_REDIRECT_URI": "http://localhost:3000/oauth/callback",
+        "OWNERREZ_ACCESS_TOKEN": "at_your_access_token_here"
+      }
+    }
+  }
+}

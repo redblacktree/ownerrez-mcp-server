@@ -1,0 +1,35 @@
+{
+  "name": "ownerrez-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for OwnerRez API with OAuth2 authentication",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "ownerrez-mcp-server": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node build/index.js",
+    "dev": "tsc && node build/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "ownerrez",
+    "oauth2",
+    "vacation-rental",
+    "property-management"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  }
+}
