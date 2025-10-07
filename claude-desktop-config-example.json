@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ownerrez": {
+      "command": "node",
+      "args": [
+        "/home/ubuntu/ownerrez-mcp-server/build/index.js"
+      ],
+      "env": {
+        "OWNERREZ_CLIENT_ID": "c_l9moiiilq5k1k0rv5u31maky734sz617",
+        "OWNERREZ_CLIENT_SECRET": "s_t5bkxbq5b95xvir8woeso8uk8dt7cmb2",
+        "OWNERREZ_REDIRECT_URI": "http://localhost:3000/oauth/callback",
+        "OWNERREZ_ACCESS_TOKEN": "at_hqowd4zti1keqy5iiqubkg2d3rly8f87"
+      }
+    }
+  }
+}

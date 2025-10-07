@@ -48,13 +48,13 @@ export class OwnerRezClient {
       new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: this.config.redirectUri,
       }).toString(),
       {
         headers: {
           'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'OwnerRez-MCP-Server/1.0'
+          'User-Agent': 'OwnerRez-MCP-Server/1.0',
+          'Accept': 'application/json'
         }
       }
     );
