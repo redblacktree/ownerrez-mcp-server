@@ -319,3 +319,7 @@ For issues with:
 - **This MCP Server**: Open an issue on GitHub
 - **OwnerRez API**: Contact help@ownerrez.com
 - **OAuth Setup**: Contact partnerhelp@ownerrez.com
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
