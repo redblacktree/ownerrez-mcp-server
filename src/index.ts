@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import * as dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
 import { OwnerRezClient } from './client.js';
 
 dotenv.config();
@@ -719,9 +722,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('OwnerRez MCP Server running on stdio');
+  const transportMode = process.env.TRANSPORT_MODE || 'stdio';
+  
+  if (transportMode === 'http') {
+    const app = express();
+    app.use(cors());
+    app.use(express.json());
+    
+    app.get('/health', (_req, res) => {
+      res.json({ status: 'ok' });
+    });
+    
+    app.post('/sse', async (req, res) => {
+      const transport = new SSEServerTransport('/message', res);
+      await server.connect(transport);
+      console.error('Client connected via SSE');
+    });
+    
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+      console.error(`OwnerRez MCP Server running on HTTP port ${port}`);
+    });
+  } else {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error('OwnerRez MCP Server running on stdio');
+  }
 }
 
 main().catch((error) => {
