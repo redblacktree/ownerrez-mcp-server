@@ -11,6 +11,7 @@ primary_region = 'iad'
 [env]
   TRANSPORT_MODE = "http"
   PORT = "3000"
+  SERVER_URL = "https://ownerrez-mcp-server.fly.dev"
 
 [http_service]
   internal_port = 3000
