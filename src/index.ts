@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
+import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
@@ -729,6 +730,26 @@ async function main() {
     app.use(cors());
     app.use(express.json());
     
+    const serverUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const ownerrezOAuthMetadata = {
+      issuer: 'https://api.ownerrez.com',
+      authorization_endpoint: 'https://app.ownerrez.com/oauth/authorize',
+      token_endpoint: 'https://api.ownerrez.com/oauth/access_token',
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+      token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
+      code_challenge_methods_supported: ['S256'],
+      revocation_endpoint: 'https://api.ownerrez.com/oauth/access_token/{token}',
+      service_documentation: 'https://api.ownerrez.com/help/oauth'
+    };
+    
+    app.use(mcpAuthMetadataRouter({
+      oauthMetadata: ownerrezOAuthMetadata,
+      resourceServerUrl: new URL(serverUrl),
+      resourceName: 'OwnerRez MCP Server',
+      serviceDocumentationUrl: new URL('https://github.com/redblacktree/ownerrez-mcp-server')
+    }));
+    
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok' });
     });
@@ -742,6 +763,7 @@ async function main() {
     const port = process.env.PORT || 3000;
     app.listen(port, () => {
       console.error(`OwnerRez MCP Server running on HTTP port ${port}`);
+      console.error(`OAuth metadata available at: ${serverUrl}/.well-known/oauth-authorization-server`);
     });
   } else {
     const transport = new StdioServerTransport();
