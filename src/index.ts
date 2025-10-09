@@ -2,6 +2,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -758,6 +759,17 @@ async function main() {
       const transport = new SSEServerTransport('/message', res);
       await server.connect(transport);
       console.error('Client connected via SSE');
+    });
+    
+    app.all('/mcp', async (req, res) => {
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      
+      await transport.start();
+      await server.connect(transport);
+      
+      await transport.handleRequest(req, res);
     });
     
     const port = process.env.PORT || 3000;
