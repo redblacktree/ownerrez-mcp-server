@@ -766,7 +766,6 @@ async function main() {
         sessionIdGenerator: undefined,
       });
       
-      await transport.start();
       await server.connect(transport);
       
       await transport.handleRequest(req, res);
