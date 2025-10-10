@@ -12,6 +12,8 @@
     "watch": "tsc --watch",
     "start": "node build/index.js",
     "dev": "tsc && node build/index.js",
+    "dev:http": "TRANSPORT_MODE=http PORT=3000 tsc && node build/index.js",
+    "oauth:url": "node get-oauth-url.mjs",
     "prepare": "npm run build"
   },
   "keywords": [

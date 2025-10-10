@@ -755,6 +755,149 @@ async function main() {
       res.json({ status: 'ok' });
     });
     
+    // OAuth callback endpoint
+    app.get('/oauth/callback', async (req, res) => {
+      const { code, error, error_description } = req.query;
+      
+      if (error) {
+        res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>OAuth Error - OwnerRez MCP</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+                .error { background: #fee; border: 1px solid #c33; padding: 20px; border-radius: 8px; }
+                h1 { color: #c33; }
+              </style>
+            </head>
+            <body>
+              <div class="error">
+                <h1>❌ Authorization Failed</h1>
+                <p><strong>Error:</strong> ${error}</p>
+                <p><strong>Description:</strong> ${error_description || 'No description provided'}</p>
+              </div>
+            </body>
+          </html>
+        `);
+        return;
+      }
+      
+      if (!code || typeof code !== 'string') {
+        res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>OAuth Error - OwnerRez MCP</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+                .error { background: #fee; border: 1px solid #c33; padding: 20px; border-radius: 8px; }
+                h1 { color: #c33; }
+              </style>
+            </head>
+            <body>
+              <div class="error">
+                <h1>❌ Missing Authorization Code</h1>
+                <p>No authorization code received from OwnerRez.</p>
+              </div>
+            </body>
+          </html>
+        `);
+        return;
+      }
+      
+      try {
+        console.error('Exchanging authorization code for access token...');
+        const tokenResponse = await client.exchangeCodeForToken(code);
+        
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>OAuth Success - OwnerRez MCP</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                .success { background: #efe; border: 1px solid #3c3; padding: 20px; border-radius: 8px; }
+                .token-box { background: #f5f5f5; border: 1px solid #ccc; padding: 15px; border-radius: 4px; margin: 20px 0; font-family: monospace; word-break: break-all; }
+                .copy-btn { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+                .copy-btn:hover { background: #0052a3; }
+                h1 { color: #3c3; }
+                code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
+                ol { line-height: 1.8; }
+              </style>
+            </head>
+            <body>
+              <div class="success">
+                <h1>✅ Authorization Successful!</h1>
+                <p>Your access token has been generated. Copy it below and add it to your MCP configuration.</p>
+                
+                <h3>Access Token:</h3>
+                <div class="token-box" id="token">${tokenResponse.access_token}</div>
+                <button class="copy-btn" onclick="copyToken()">📋 Copy Token</button>
+                
+                <h3>User ID:</h3>
+                <p><code>${tokenResponse.user_id}</code></p>
+                
+                <h3>Next Steps:</h3>
+                <ol>
+                  <li>Copy the access token above</li>
+                  <li>Add it to your MCP configuration file:
+                    <ul>
+                      <li><strong>Cursor:</strong> Settings → MCP Servers → ownerrez → Add <code>OWNERREZ_ACCESS_TOKEN</code> env variable</li>
+                      <li><strong>Claude Desktop:</strong> Update <code>claude_desktop_config.json</code></li>
+                    </ul>
+                  </li>
+                  <li>Restart your MCP client</li>
+                  <li>Test with: "Get my OwnerRez user information"</li>
+                </ol>
+              </div>
+              
+              <script>
+                function copyToken() {
+                  const token = document.getElementById('token').textContent;
+                  navigator.clipboard.writeText(token).then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    btn.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                      btn.textContent = '📋 Copy Token';
+                    }, 2000);
+                  });
+                }
+              </script>
+            </body>
+          </html>
+        `);
+        
+        console.error('✅ Access token obtained successfully');
+        console.error(`User ID: ${tokenResponse.user_id}`);
+        console.error(`Token: ${tokenResponse.access_token}`);
+      } catch (error: any) {
+        console.error('❌ Token exchange failed:', error.message);
+        res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>OAuth Error - OwnerRez MCP</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+                .error { background: #fee; border: 1px solid #c33; padding: 20px; border-radius: 8px; }
+                h1 { color: #c33; }
+                pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+              </style>
+            </head>
+            <body>
+              <div class="error">
+                <h1>❌ Token Exchange Failed</h1>
+                <p><strong>Error:</strong> ${error.message}</p>
+                ${error.response?.data ? `<pre>${JSON.stringify(error.response.data, null, 2)}</pre>` : ''}
+                <p>Check the server logs for more details.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+    });
+    
     app.post('/sse', async (req, res) => {
       const transport = new SSEServerTransport('/message', res);
       await server.connect(transport);

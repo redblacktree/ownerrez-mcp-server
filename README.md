@@ -139,6 +139,74 @@ Add to your Claude Desktop configuration file:
 
 Restart Claude Desktop after updating the configuration.
 
+#### Cursor / VSCode
+
+**📖 Quick Start: See [CURSOR_SETUP.md](./.agentdocs/oauth/CURSOR_SETUP.md) for a detailed step-by-step guide**
+
+Cursor and VSCode support MCP through their settings. Here's how to set it up:
+
+**Option 1: Using Stdio Mode (Recommended for Cursor)**
+
+1. Copy the example configuration:
+```bash
+cp .cursor/mcp.example.json .cursor/mcp.json
+```
+
+2. Edit `.cursor/mcp.json` with your credentials:
+```json
+{
+  "mcpServers": {
+    "ownerrez": {
+      "command": "node",
+      "args": ["/absolute/path/to/ownerrez-mcp-server/build/index.js"],
+      "env": {
+        "OWNERREZ_CLIENT_ID": "c_your_client_id",
+        "OWNERREZ_CLIENT_SECRET": "s_your_client_secret",
+        "OWNERREZ_REDIRECT_URI": "http://localhost:3000/oauth/callback",
+        "OWNERREZ_ACCESS_TOKEN": "at_your_access_token"
+      }
+    }
+  }
+}
+```
+
+3. Get your access token using HTTP mode (see below)
+
+4. Restart Cursor to load the MCP server
+
+**Option 2: Getting OAuth Token via HTTP Mode**
+
+This is the easiest way to get your access token:
+
+1. Start the server in HTTP mode:
+```bash
+npm run dev:http
+```
+
+2. The server will start on `http://localhost:3000`
+
+3. Visit the authorization URL:
+```
+http://localhost:3000/.well-known/oauth-authorization-server
+```
+Or construct it manually:
+```
+https://app.ownerrez.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost:3000/oauth/callback
+```
+
+4. After authorizing in OwnerRez, you'll be redirected to a success page showing your access token
+
+5. Copy the access token and add it to your MCP configuration
+
+6. Stop the HTTP server (Ctrl+C) and restart Cursor in stdio mode
+
+**Testing the Connection**
+
+Once configured, you can test the MCP server:
+1. Open Cursor
+2. Look for "OwnerRez" in the MCP servers list
+3. Try a command like: "Get my OwnerRez user information"
+
 ## Available Tools
 
 ### Authentication
@@ -206,6 +274,75 @@ Once configured, you can interact with OwnerRez through your MCP client:
 "Show me recent inquiries"
 "Create a new guest record for John Doe"
 ```
+
+## Development & Testing Workflow
+
+### Quick Start: Testing OAuth in Cursor
+
+This workflow allows for rapid iteration when testing OAuth:
+
+**Step 1: Get Your OAuth Token**
+
+1. Start the HTTP server:
+```bash
+npm run dev:http
+```
+
+2. Open your browser and navigate to the authorization URL (replace with your client ID):
+```
+https://app.ownerrez.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost:3000/oauth/callback
+```
+
+3. Log into OwnerRez and authorize the application
+
+4. You'll be redirected to `http://localhost:3000/oauth/callback` and see a success page with your access token
+
+5. Copy the access token from the page
+
+**Step 2: Configure Cursor**
+
+1. Edit `.cursor/mcp.json` and add your credentials:
+```json
+{
+  "mcpServers": {
+    "ownerrez": {
+      "command": "node",
+      "args": ["/absolute/path/to/ownerrez-mcp-server/build/index.js"],
+      "env": {
+        "OWNERREZ_CLIENT_ID": "c_your_client_id",
+        "OWNERREZ_CLIENT_SECRET": "s_your_client_secret",
+        "OWNERREZ_REDIRECT_URI": "http://localhost:3000/oauth/callback",
+        "OWNERREZ_ACCESS_TOKEN": "at_your_access_token_from_step_1"
+      }
+    }
+  }
+}
+```
+
+2. Stop the HTTP server (Ctrl+C)
+
+**Step 3: Test in Cursor**
+
+1. Restart Cursor to load the MCP server
+2. The server will start automatically in stdio mode
+3. Test with: "Get my OwnerRez user information"
+
+**Step 4: Iterative Testing**
+
+When you make code changes:
+
+1. Make your changes to the source code
+2. Rebuild: `npm run build`
+3. Restart the MCP connection in Cursor (or restart Cursor)
+4. Test your changes
+
+**Viewing Logs**
+
+MCP server logs in Cursor can be found in:
+- **MacOS**: `~/Library/Logs/Cursor/`
+- **Windows**: `%APPDATA%\Cursor\logs\`
+
+Look for files related to the MCP server or stdio output.
 
 ## Deployment
 

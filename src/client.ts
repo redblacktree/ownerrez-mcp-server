@@ -43,6 +43,8 @@ export class OwnerRezClient {
   async exchangeCodeForToken(code: string): Promise<OAuthTokenResponse> {
     const auth = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64');
     
+    // Note: OwnerRez has a quirk - do NOT include redirect_uri in token exchange
+    // Including it causes 403 errors even though OAuth 2.0 spec suggests it
     const response = await axios.post<OAuthTokenResponse>(
       `${this.baseURL}/oauth/access_token`,
       new URLSearchParams({
