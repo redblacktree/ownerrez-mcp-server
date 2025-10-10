@@ -13,6 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - name: Set secrets
+        run: |
+          flyctl secrets set \
+            OWNERREZ_CLIENT_ID="${{ secrets.OWNERREZ_CLIENT_ID }}" \
+            OWNERREZ_CLIENT_SECRET="${{ secrets.OWNERREZ_CLIENT_SECRET }}" \
+            OWNERREZ_REDIRECT_URI="https://ownerrez-mcp-server.fly.dev/oauth/callback" \
+            --stage
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

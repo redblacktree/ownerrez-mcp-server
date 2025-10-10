@@ -153,6 +153,8 @@ curl -u YOUR_CLIENT_ID:YOUR_CLIENT_SECRET \
 
 ## Step 6: Configure Environment
 
+### Local Development
+
 Add the credentials to your `.env` file:
 
 ```env
@@ -161,6 +163,30 @@ OWNERREZ_CLIENT_SECRET=s_your_actual_client_secret
 OWNERREZ_REDIRECT_URI=http://localhost:3000/oauth/callback
 OWNERREZ_ACCESS_TOKEN=at_your_actual_access_token
 ```
+
+### Production Deployment (Fly.io)
+
+For production deployments via GitHub Actions:
+
+1. **Add GitHub Secrets**:
+   - Go to your GitHub repository → Settings → Secrets and variables → Actions
+   - Add the following repository secrets:
+     - `OWNERREZ_CLIENT_ID` = `c_your_actual_client_id`
+     - `OWNERREZ_CLIENT_SECRET` = `s_your_actual_client_secret`
+     - `FLY_API_TOKEN` = `your_fly_api_token` (if not already set)
+
+2. **Automatic Configuration**:
+   - The GitHub Actions workflow automatically sets these as Fly.io secrets during deployment
+   - The redirect URI is automatically set to `https://ownerrez-mcp-server.fly.dev/oauth/callback`
+   - No manual Fly.io secret configuration needed
+
+3. **Verify Deployment**:
+   ```bash
+   # Check if secrets are set
+   flyctl secrets list -a ownerrez-mcp-server
+   ```
+
+**Note**: Access tokens are user-specific and should be obtained by each user through the OAuth flow in production, not hardcoded in deployment.
 
 ## Step 7: Test Authentication
 
