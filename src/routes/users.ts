@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { query, transaction } from '../database.js';
-import { generateApiKey, storeApiKey } from '../auth.js';
+import { generateApiKey, hashApiKey, getKeyPrefix } from '../auth.js';
 
 const router = Router();
 
@@ -22,9 +22,15 @@ router.post('/register', async (req: Request, res: Response) => {
       
       // Generate API key
       const apiKey = generateApiKey();
+      const keyHash = await hashApiKey(apiKey);
+      const keyPrefix = getKeyPrefix(apiKey);
       
-      // Store API key
-      await storeApiKey(userId, apiKey, name);
+      // Store API key (using client from transaction)
+      await client.query(
+        `INSERT INTO api_keys (user_id, key_hash, key_prefix, name) 
+         VALUES ($1, $2, $3, $4)`,
+        [userId, keyHash, keyPrefix, name]
+      );
       
       return { userId, apiKey };
     });
