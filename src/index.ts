@@ -746,7 +746,7 @@ async function main() {
     
     app.use(mcpAuthMetadataRouter({
       oauthMetadata: ownerrezOAuthMetadata,
-      resourceServerUrl: new URL(serverUrl),
+      resourceServerUrl: new URL(`${serverUrl}/mcp`),
       resourceName: 'OwnerRez MCP Server',
       serviceDocumentationUrl: new URL('https://github.com/redblacktree/ownerrez-mcp-server')
     }));
