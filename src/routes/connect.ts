@@ -290,6 +290,51 @@ router.delete('/ownerrez', requireApiKey, async (req: Request, res: Response) =>
 });
 
 /**
+ * GET /api/connect/ownerrez/test
+ * Test OwnerRez API call with stored token
+ */
+router.get('/ownerrez/test', requireApiKey, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    
+    // Get user's token
+    const accessToken = await getUserOwnerRezToken(userId);
+    
+    if (!accessToken) {
+      res.status(404).json({ error: 'No OwnerRez connection found' });
+      return;
+    }
+    
+    // Create a client with the user's token
+    const testClient = new OwnerRezClient({
+      clientId: process.env.OWNERREZ_CLIENT_ID || '',
+      clientSecret: process.env.OWNERREZ_CLIENT_SECRET || '',
+      redirectUri: getProxyRedirectUri(),
+      accessToken: accessToken,
+    });
+    
+    // Make a test API call (get user info)
+    const userInfo = await testClient.getCurrentUser() as any;
+    
+    res.json({
+      success: true,
+      message: 'OwnerRez API connection working!',
+      user: {
+        id: userInfo.id,
+        name: userInfo.name,
+        email: userInfo.email
+      }
+    });
+  } catch (error: any) {
+    console.error('Test call error:', error);
+    res.status(500).json({ 
+      error: 'Failed to test OwnerRez connection',
+      details: error.message 
+    });
+  }
+});
+
+/**
  * Helper function to get user's OwnerRez token
  * Used by MCP server to make API calls on behalf of user
  */
