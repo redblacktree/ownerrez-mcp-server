@@ -10,6 +10,8 @@ export interface OAuthTokenResponse {
   token_type: string;
   scope: string;
   user_id: number;
+  refresh_token?: string;
+  expires_in?: number;
 }
 
 export interface Booking {

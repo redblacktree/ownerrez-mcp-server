@@ -9,6 +9,7 @@ dist/
 *.swp
 *.swo
 .npm/
+*.har
 
 # MCP configuration with credentials (use mcp.example.json as template)
 .cursor/mcp.json

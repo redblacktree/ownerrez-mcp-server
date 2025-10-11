@@ -12,16 +12,45 @@ import { mcpAuthMetadataRouter } from '@modelcontextprotocol/sdk/server/auth/rou
 import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import { OwnerRezClient } from './client.js';
+import { runMigrations, closePool } from './database.js';
+import { validateApiKey } from './auth.js';
+import usersRouter from './routes/users.js';
+import connectRouter, { getUserOwnerRezToken } from './routes/connect.js';
 
 dotenv.config();
 
-const client = new OwnerRezClient({
+// Create a default client for OAuth operations (not for API calls)
+const defaultClient = new OwnerRezClient({
   clientId: process.env.OWNERREZ_CLIENT_ID || '',
   clientSecret: process.env.OWNERREZ_CLIENT_SECRET || '',
   redirectUri: process.env.OWNERREZ_REDIRECT_URI || '',
-  accessToken: process.env.OWNERREZ_ACCESS_TOKEN || '',
+  accessToken: process.env.OWNERREZ_ACCESS_TOKEN || '', // Fallback for backward compatibility
 });
+
+// Helper to get or create a client for a user
+async function getClientForUser(userId: string): Promise<OwnerRezClient> {
+  const token = await getUserOwnerRezToken(userId);
+  
+  if (!token) {
+    throw new Error('No OwnerRez connection found for user');
+  }
+  
+  const userClient = new OwnerRezClient({
+    clientId: process.env.OWNERREZ_CLIENT_ID || '',
+    clientSecret: process.env.OWNERREZ_CLIENT_SECRET || '',
+    redirectUri: process.env.OWNERREZ_REDIRECT_URI || '',
+    accessToken: token,
+  });
+  
+  return userClient;
+}
+
+// Context map to store userId for current request
+// Using AsyncLocalStorage would be better but this works for our simple use case
+const requestContext = new Map<string, string>();
+let currentSessionId: string | undefined;
 
 const server = new Server(
   {
@@ -458,6 +487,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  // Get userId from context (set by /mcp endpoint after API key validation)
+  const userId = currentSessionId ? requestContext.get(currentSessionId) : undefined;
+  
+  // Get user-specific client
+  let client: OwnerRezClient;
+  try {
+    if (userId) {
+      client = await getClientForUser(userId);
+    } else {
+      // Fallback to default client for backward compatibility (when no API key provided)
+      client = defaultClient;
+      if (!process.env.OWNERREZ_ACCESS_TOKEN) {
+        throw new Error('No authentication configured');
+      }
+    }
+  } catch (error: any) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: ${error.message}\n\nPlease ensure you have connected your OwnerRez account:\n1. Generate an API key: POST /api/users/register\n2. Authorize OwnerRez: GET /api/connect/ownerrez/start\n3. Add your API key to your MCP client configuration with Authorization header`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
   try {
     switch (name) {
       case 'get_oauth_url': {
@@ -727,6 +783,21 @@ async function main() {
   const transportMode = process.env.TRANSPORT_MODE || 'stdio';
   
   if (transportMode === 'http') {
+    // Initialize database if DATABASE_URL is set
+    if (process.env.DATABASE_URL) {
+      try {
+        console.error('🔄 Running database migrations...');
+        await runMigrations();
+        console.error('✅ Database initialized');
+      } catch (error: any) {
+        console.error('⚠️  Database initialization failed:', error.message);
+        console.error('⚠️  OAuth proxy features will not be available');
+      }
+    } else {
+      console.error('⚠️  DATABASE_URL not set - OAuth proxy features disabled');
+      console.error('⚠️  Using legacy OAuth flow with env vars');
+    }
+    
     const app = express();
     app.use(cors());
     app.use(express.json());
@@ -750,6 +821,10 @@ async function main() {
       resourceName: 'OwnerRez MCP Server',
       serviceDocumentationUrl: new URL('https://github.com/redblacktree/ownerrez-mcp-server')
     }));
+    
+    // API routes for OAuth proxy
+    app.use('/api/users', usersRouter);
+    app.use('/api/connect', connectRouter);
     
     app.get('/health', (_req, res) => {
       res.json({ status: 'ok' });
@@ -808,7 +883,7 @@ async function main() {
       
       try {
         console.error('Exchanging authorization code for access token...');
-        const tokenResponse = await client.exchangeCodeForToken(code);
+        const tokenResponse = await defaultClient.exchangeCodeForToken(code);
         
         res.send(`
           <!DOCTYPE html>
@@ -905,13 +980,49 @@ async function main() {
     });
     
     app.all('/mcp', async (req, res) => {
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-      });
+      // Extract and validate API key from Authorization header
+      let userId: string | undefined;
+      const authHeader = req.headers.authorization;
       
-      await server.connect(transport);
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const apiKey = authHeader.substring(7);
+        userId = await validateApiKey(apiKey).catch(() => null) || undefined;
+        
+        if (!userId) {
+          res.status(401).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32000,
+              message: 'Invalid API key. Please register and authorize your account:\n1. POST /api/users/register\n2. GET /api/connect/ownerrez/start'
+            },
+            id: null
+          });
+          return;
+        }
+      }
       
-      await transport.handleRequest(req, res);
+      // Generate session ID and store userId in context
+      const sessionId = crypto.randomUUID();
+      if (userId) {
+        requestContext.set(sessionId, userId);
+      }
+      
+      // Set current session ID for request handlers
+      const previousSessionId = currentSessionId;
+      currentSessionId = sessionId;
+      
+      try {
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+        });
+        
+        await server.connect(transport);
+        await transport.handleRequest(req, res);
+      } finally {
+        // Clean up session context
+        requestContext.delete(sessionId);
+        currentSessionId = previousSessionId;
+      }
     });
     
     const port = process.env.PORT || 3000;
