@@ -12,11 +12,17 @@ import { OwnerRezClient } from '../client.js';
 
 const router = Router();
 
-// Initialize OwnerRez client for OAuth operations
+// Get base URL from SERVER_URL environment variable
+const getProxyRedirectUri = (): string => {
+  const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
+  return `${serverUrl}/api/connect/ownerrez/callback`;
+};
+
+// Initialize OwnerRez client for OAuth proxy operations
 const oauthClient = new OwnerRezClient({
   clientId: process.env.OWNERREZ_CLIENT_ID || '',
   clientSecret: process.env.OWNERREZ_CLIENT_SECRET || '',
-  redirectUri: process.env.OWNERREZ_REDIRECT_URI || '',
+  redirectUri: getProxyRedirectUri(),
 });
 
 /**
